@@ -67,7 +67,22 @@ around it, no "Here's a draft". Just the content, ready to review.\
 """
 
 
-def build_system_prompt(content_type: ContentType) -> str:
+# ---- 3b. RESEARCH INSTRUCTIONS (only when a search tool is available) ------
+# When we hand the model the web_search tool, we also change its instructions:
+# it must ground factual claims in what it finds, not its own memory. This is
+# the accuracy-first rule (CLAUDE.md §4) expressed as prompt policy.
+RESEARCH_POLICY = """\
+You have a web_search tool. This topic requires factual accuracy, so:
+- Before stating any technical fact, definition, number, or recent detail, \
+search to confirm it. Prefer searching over relying on memory.
+- Base your explanation ONLY on what the search results actually support. If \
+the results don't confirm something, don't claim it.
+- Write for X as instructed. Keep the post itself clean (no raw URLs mid-post); \
+the sources you used are recorded separately for review.\
+"""
+
+
+def build_system_prompt(content_type: ContentType, research_enabled: bool = False) -> str:
     """Assemble the standing instructions for one content type."""
     spec = spec_for(content_type)
 
@@ -76,7 +91,11 @@ def build_system_prompt(content_type: ContentType) -> str:
         f"Shape this post like so: {spec.shape}"
     )
 
-    return "\n\n".join([VOICE, PLATFORM_X, type_shape, OUTPUT_CONTRACT])
+    parts = [VOICE, PLATFORM_X, type_shape]
+    if research_enabled:
+        parts.append(RESEARCH_POLICY)
+    parts.append(OUTPUT_CONTRACT)
+    return "\n\n".join(parts)
 
 
 def build_user_prompt(
