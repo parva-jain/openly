@@ -164,13 +164,15 @@ Claude Code integration:
 
 ### Stage 1 — Tool use / single agent (+ the manual trigger + research)
 
-- [ ] **Learn:** Tool use (course #5) + "Building Effective Agents" essay +
-      cookbook `tool_use`.
-- [ ] **Build:** (a) the in-session manual trigger as a basic command that
-      snapshots a window + intent and queues a job; (b) give the drafter a
-      web-search/fetch tool it uses only when the content type needs research.
-- [ ] **Done when:** I trigger mid-session, keep working, and a researched,
-      cited draft shows up for review.
+- [x] **Learn:** tool use + non-blocking queue design — taught build-along
+      (the request→execute→return loop; tools as descriptions; gating tools by
+      need; capture-as-file-reading; queue = non-blocking trigger).
+- [x] **Build:** (a) manual trigger — `openly mark` snapshots a sanitized
+      transcript window + intent and queues a job (non-blocking); `openly work`
+      drains the queue async; `list`/`show` for review. (b) Tavily web_search
+      tool, offered only when the content type needs research.
+- [x] **Done when:** I trigger mid-session, keep working, and a researched,
+      cited draft shows up for review. ✅ verified end-to-end.
 
 ### Evals — introduce here, keep forever
 
@@ -272,7 +274,13 @@ Claude Code integration:
   `scripts/draft_cli.py` (CLI). Targets X. Default model `claude-sonnet-4-6`.
   Research-needing types (concept_explainer) emit an "UNVERIFIED" banner until
   Stage 1 research lands. Verified working on all 4 types (~$0.002–0.004/draft).
-- **Next action:** Stage 1 — (a) the in-session manual trigger (snapshot a
-  transcript window + intent, queue a job), and (b) give the drafter a
-  web-search/fetch tool used only when the content type needs research. Then
-  introduce Evals.
+- **Stage 1 complete.** (b) Research tool: `openly/research.py` (Tavily
+  web_search + tool-use loop in `draft.py`), gated on `needs_research`. (a)
+  Manual trigger + queue: `openly/capture.py` (finds this project's latest
+  JSONL transcript, reads a window, redacts secrets), `openly/queue.py` (flat
+  JSON job queue → non-blocking), `openly/worker.py` (drains queue, saves
+  drafts to `data/drafts/<id>.md`), `scripts/openly_cli.py` (`mark`/`work`/
+  `list`/`show`). `data/` is gitignored (privacy). Verified end-to-end.
+- **Next action:** Evals — build a small labeled good/bad draft set across a few
+  content types + a scoring script, so every later change (Stage 2 RAG onward)
+  can be measured. Then Stage 2 (RAG style memory).
