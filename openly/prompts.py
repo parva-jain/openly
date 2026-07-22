@@ -61,10 +61,34 @@ if the idea genuinely needs the room.
 # drop straight into a review flow, with no "Here's your draft:" preamble to
 # strip. (We'll graduate to real structured/JSON output when a later stage
 # needs machine-readable metadata alongside the text.)
-OUTPUT_CONTRACT = """\
-Output ONLY the post text itself. No preamble, no explanation, no quotes \
-around it, no "Here's a draft". Just the content, ready to review.\
-"""
+# A line containing ONLY this marks the boundary between variations. We parse
+# the model's output on it. A distinctive token avoids clashing with post text.
+VARIATION_DELIMITER = "===VARIATION==="
+
+_SINGLE_CONTRACT = (
+    "Output ONLY the post text itself. No preamble, no explanation, no quotes "
+    'around it, no "Here\'s a draft". Just the content, ready to review.'
+)
+
+
+def output_contract(n_variations: int) -> str:
+    """The output shape. One post, or a delimited slate of N distinct ones.
+
+    Generating N variations in ONE call (rather than N calls) is the cheap path;
+    the instruction to vary ANGLE + HOOK is what keeps them genuinely different
+    instead of reworded near-duplicates.
+    """
+    if n_variations <= 1:
+        return _SINGLE_CONTRACT
+    return (
+        f"Produce exactly {n_variations} DISTINCT variations of the post. Make "
+        "them genuinely different in ANGLE and OPENING HOOK — different entry "
+        "points and first lines, not minor rewordings. Each variation must be a "
+        "complete, standalone post that follows every rule above.\n"
+        f"Separate consecutive variations with a line containing ONLY "
+        f"{VARIATION_DELIMITER}\n"
+        "Output nothing else — no numbering, no labels, no commentary."
+    )
 
 
 # ---- 3b. RESEARCH INSTRUCTIONS (only when a search tool is available) ------
@@ -82,7 +106,11 @@ the sources you used are recorded separately for review.\
 """
 
 
-def build_system_prompt(content_type: ContentType, research_enabled: bool = False) -> str:
+def build_system_prompt(
+    content_type: ContentType,
+    research_enabled: bool = False,
+    n_variations: int = 1,
+) -> str:
     """Assemble the standing instructions for one content type."""
     spec = spec_for(content_type)
 
@@ -94,7 +122,33 @@ def build_system_prompt(content_type: ContentType, research_enabled: bool = Fals
     parts = [VOICE, PLATFORM_X, type_shape]
     if research_enabled:
         parts.append(RESEARCH_POLICY)
-    parts.append(OUTPUT_CONTRACT)
+    parts.append(output_contract(n_variations))
+    return "\n\n".join(parts)
+
+
+def build_fuse_system_prompt(content_type: ContentType) -> str:
+    """Standing instructions for fusing selected variations into one post."""
+    spec = spec_for(content_type)
+    fuse_task = (
+        "You are combining the user's SELECTED variations into a single, "
+        "stronger post. Keep what makes each selected variation good — the best "
+        "hook, the sharpest lines, the truest phrasing — and merge them into one "
+        "coherent post. Do not average them into blandness; make deliberate "
+        "choices. Follow the voice, platform, and content-type rules above.\n"
+        f"Content type: {spec.label}."
+    )
+    return "\n\n".join([VOICE, PLATFORM_X, fuse_task, _SINGLE_CONTRACT])
+
+
+def build_fuse_user_prompt(variations: list[str], instruction: str | None = None) -> str:
+    """The fuse request: the selected variations + an optional steer."""
+    blocks = []
+    for i, v in enumerate(variations, 1):
+        blocks.append(f"<variation_{i}>\n{v.strip()}\n</variation_{i}>")
+    parts = ["Selected variations to fuse:", "\n\n".join(blocks)]
+    if instruction and instruction.strip():
+        parts.append(f"<instruction>\n{instruction.strip()}\n</instruction>")
+    parts.append("Now write the single fused post.")
     return "\n\n".join(parts)
 
 

@@ -124,9 +124,18 @@ clients (web dashboard + CLI) talk only to the Node backend.
                                     ▼
                  ┌────────────────────────────────────┐
                  │   PYTHON  AI SERVICE  (FastAPI)     │  STATELESS
-                 │   POST /draft → draft+sources+usage │  prompts · Anthropic ·
-                 │   prompts · tool-use research · RAG │  research loop · (RAG)
+                 │   POST /draft   → N variations      │  prompts · Anthropic ·
+                 │   POST /fuse    → 1 synthesized      │  research loop · (RAG)
+                 │   prompts · tool-use research · RAG │
                  └────────────────────────────────────┘
+
+**Variation-slate model (core interaction).** A draft request returns a SLATE
+of N variations (N configurable, default 3), each entering from a distinct
+angle, generated in a single call for cost efficiency. On the dashboard the
+user can: pick one, edit it, **fuse** 2+ into one synthesized draft, or
+regenerate (optionally with feedback like "more raw / shorter"). This keeps
+"the machine is the quality gate, the human decides" (§4). Bonus: which
+variation the user picks / how they fuse is a strong style-memory signal (M7).
 ```
 
 **Ownership:**
@@ -184,13 +193,13 @@ Cost discipline (job-hunting-friendly, near-zero spend):
       (capture + sanitize + queue), `openly work` (drain), `list`/`show`. NOTE:
       queue/worker move to Node; capture moves to the CLI in the new architecture.
 
-### M1 — Python AI service (FastAPI)  ← NEXT
-- [ ] **Learn:** turning a library into a web service; request/response schemas.
-- [ ] **Build:** wrap the existing engine in a stateless FastAPI app.
-      `POST /draft` takes `{content_type, intent, session_context?,
-      research_notes?}` → returns `{text, sources, usage, needs_verification}`.
-      `GET /health`. No DB, no users.
-- [ ] **Done when:** `curl` the endpoint and get a JSON draft back.
+### M1 — Python AI service (FastAPI)
+- [x] **Build:** wrapped the engine in a stateless FastAPI app. `GET /health`;
+      `POST /draft` (single draft). No DB, no users. Verified via curl.
+- [ ] **Refine (do next):** change `/draft` to return a **slate of N
+      variations** (`n_variations`, default 3) instead of one draft; add
+      `POST /fuse` (selected variations + optional instruction → 1 synthesized
+      draft). Fix this contract before Node builds against it (M2).
 
 ### M2 — Node/TS backend calls Python
 - [ ] **Learn:** the polyglot boundary; typed HTTP client between services.
@@ -226,9 +235,10 @@ Cost discipline (job-hunting-friendly, near-zero spend):
 
 ### M6 — Web dashboard
 - [ ] **Learn:** wiring a frontend to the Node API.
-- [ ] **Build:** login; list jobs/drafts; review + edit; trigger a draft. (Stack
-      — Next.js/React — TBD.)
-- [ ] **Done when:** the user drives the whole flow from the browser.
+- [ ] **Build:** login; list jobs; view the **variation slate** for a job;
+      pick / edit / **fuse** / regenerate; approve. (Stack — Next.js/React — TBD.)
+- [ ] **Done when:** the user drives the whole slate→pick/fuse→approve flow in
+      the browser.
 
 ### M7 — Style memory (RAG, per-user)
 - [ ] **Learn:** RAG — retrieve relevant style rules + (draft→published) edit

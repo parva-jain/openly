@@ -18,6 +18,9 @@ from dataclasses import dataclass
 # not-overlong drafts keep costs down.
 PRICING: dict[str, tuple[float, float]] = {
     "claude-opus-4-8": (15.0, 75.0),
+    # NOTE: claude-sonnet-5 pricing is an UNVERIFIED estimate (mirrors the
+    # Sonnet 4.6 tier). Confirm at https://www.anthropic.com/pricing and fix.
+    "claude-sonnet-5": (3.0, 15.0),
     "claude-sonnet-4-6": (3.0, 15.0),
     "claude-haiku-4-5-20251001": (1.0, 5.0),
 }

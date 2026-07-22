@@ -20,7 +20,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from openly.content_types import ContentType
-from openly.draft import draft
+from openly.draft import DEFAULT_VARIATIONS, MAX_VARIATIONS, draft, fuse
 
 app = FastAPI(
     title="Openly AI Service",
@@ -46,6 +46,25 @@ class DraftRequest(BaseModel):
     research_notes: str | None = Field(
         None, description="Optional pre-verified external facts."
     )
+    n_variations: int = Field(
+        DEFAULT_VARIATIONS,
+        ge=1,
+        le=MAX_VARIATIONS,
+        description=f"How many distinct variations to return (1-{MAX_VARIATIONS}).",
+    )
+    model: str | None = Field(None, description="Optional model id override.")
+
+
+class FuseRequest(BaseModel):
+    content_type: ContentType = Field(
+        ..., description="The content type of the variations being fused."
+    )
+    variations: list[str] = Field(
+        ..., min_length=1, description="The selected variations to synthesize into one."
+    )
+    instruction: str | None = Field(
+        None, description="Optional steer, e.g. 'more raw', 'shorter'."
+    )
     model: str | None = Field(None, description="Optional model id override.")
 
 
@@ -63,10 +82,16 @@ class UsageOut(BaseModel):
 
 
 class DraftResponse(BaseModel):
-    text: str
+    variations: list[str]
     content_type: str
     needs_verification: bool
     sources: list[SourceOut]
+    usage: UsageOut
+
+
+class FuseResponse(BaseModel):
+    text: str
+    content_type: str
     usage: UsageOut
 
 
@@ -79,15 +104,25 @@ def health() -> dict:
     return {"status": "ok", "service": "openly-ai"}
 
 
+def _usage_out(result) -> UsageOut:
+    return UsageOut(
+        model=result.usage.model,
+        input_tokens=result.usage.input_tokens,
+        output_tokens=result.usage.output_tokens,
+        cost_usd=round(result.usage.cost_usd, 6),
+    )
+
+
 @app.post("/draft", response_model=DraftResponse)
 def create_draft(req: DraftRequest) -> DraftResponse:
-    """Draft one platform post from a typed intent. Stateless."""
+    """Draft a SLATE of N variations from a typed intent. Stateless."""
     try:
         kwargs = dict(
             content_type=req.content_type,
             intent=req.intent,
             session_context=req.session_context,
             research_notes=req.research_notes,
+            n_variations=req.n_variations,
         )
         if req.model:
             kwargs["model"] = req.model
@@ -97,17 +132,34 @@ def create_draft(req: DraftRequest) -> DraftResponse:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     return DraftResponse(
-        text=result.text,
+        variations=result.variations,
         content_type=result.content_type.value,
         needs_verification=result.needs_verification,
         sources=[
             SourceOut(title=s.title, url=s.url, snippet=s.snippet)
             for s in result.sources
         ],
-        usage=UsageOut(
-            model=result.usage.model,
-            input_tokens=result.usage.input_tokens,
-            output_tokens=result.usage.output_tokens,
-            cost_usd=round(result.usage.cost_usd, 6),
-        ),
+        usage=_usage_out(result),
+    )
+
+
+@app.post("/fuse", response_model=FuseResponse)
+def fuse_variations(req: FuseRequest) -> FuseResponse:
+    """Synthesize selected variations into one stronger post. Stateless."""
+    try:
+        kwargs = dict(
+            content_type=req.content_type,
+            variations=req.variations,
+            instruction=req.instruction,
+        )
+        if req.model:
+            kwargs["model"] = req.model
+        result = fuse(**kwargs)
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return FuseResponse(
+        text=result.text,
+        content_type=result.content_type.value,
+        usage=_usage_out(result),
     )
