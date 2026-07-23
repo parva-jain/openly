@@ -1,0 +1,20 @@
+# Tooling config for the Python AI service.
+# Runtime deps stay in requirements.txt; dev tools in requirements-dev.txt.
+
+[tool.ruff]
+# Ruff = fast linter + formatter (replaces flake8 + isort + black).
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+# A pragmatic ruleset: pyflakes (F), pycodestyle (E/W), imports (I),
+# bugbear (B), pyupgrade (UP).
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# One-off preview script: long prompt string literals are intentional.
+"scripts/voice_variations.py" = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

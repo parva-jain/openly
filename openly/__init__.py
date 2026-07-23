@@ -5,6 +5,6 @@ Stage 0: the `draft` call. Hand it a content type + a one-line intent
 """
 
 from openly.content_types import ContentType
-from openly.draft import draft, fuse, DraftResult
+from openly.draft import DraftResult, draft, fuse
 
 __all__ = ["ContentType", "draft", "fuse", "DraftResult"]

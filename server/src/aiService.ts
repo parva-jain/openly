@@ -5,12 +5,7 @@
 // HTTP boundary is isolated in one module. Uses Node's built-in fetch.
 
 import { config } from "./config.js";
-import type {
-  DraftRequest,
-  DraftResponse,
-  FuseRequest,
-  FuseResponse,
-} from "./types.js";
+import type { DraftRequest, DraftResponse, FuseRequest, FuseResponse } from "./types.js";
 
 /** Error thrown when the Python service returns a non-2xx response. */
 export class AiServiceError extends Error {

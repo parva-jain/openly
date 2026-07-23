@@ -21,7 +21,6 @@ from __future__ import annotations
 
 from openly.content_types import ContentType, spec_for
 
-
 # ---- 1. ROLE / VOICE -------------------------------------------------------
 # There's no learned style yet — that arrives in Stage 2 (RAG style memory).
 # For now this is a sensible generic "good build-in-public voice". When we

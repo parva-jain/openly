@@ -1,0 +1,49 @@
+name: CI
+
+# Run the full quality gate on every push and PR.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  python:
+    name: Python AI service
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+      - name: Install deps
+        run: pip install -r requirements-dev.txt
+      - name: Lint (ruff)
+        run: ruff check openly tests scripts
+      - name: Test (pytest)
+        run: pytest
+        # No secrets needed: tests mock the Anthropic/Tavily boundary.
+
+  node:
+    name: Node backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install deps
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint (eslint)
+        run: npm run lint
+      - name: Format check (prettier)
+        run: npm run format:check
+      - name: Test
+        run: npm test

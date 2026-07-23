@@ -20,7 +20,6 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-
 # ---- 1. The tool description handed to the model ---------------------------
 # The `description` is prompt-engineering too: it tells the model *when* this
 # tool is worth calling. `input_schema` is JSON Schema — it constrains what a

@@ -6,10 +6,7 @@
 // them in one file makes that boundary explicit and easy to maintain.
 
 export type ContentType =
-  | "progress_update"
-  | "origin_narrative"
-  | "learning_reflection"
-  | "concept_explainer";
+  "progress_update" | "origin_narrative" | "learning_reflection" | "concept_explainer";
 
 // ---- POST /draft ----
 export interface DraftRequest {
