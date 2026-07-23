@@ -201,12 +201,16 @@ Cost discipline (job-hunting-friendly, near-zero spend):
       `POST /fuse` (selected variations + optional instruction → 1 synthesized
       draft). Fix this contract before Node builds against it (M2).
 
-### M2 — Node/TS backend calls Python
-- [ ] **Learn:** the polyglot boundary; typed HTTP client between services.
-- [ ] **Build:** minimal Node/TS service exposing its own endpoint that calls
-      the Python `/draft` over HTTP and returns the result. (Node stack —
-      Express vs. NestJS — TBD.)
-- [ ] **Done when:** hitting the Node endpoint round-trips through Python.
+### M2 — Node/TS backend calls Python  ✅
+- [x] **Build:** `server/` — Node + TypeScript + Express 5 (native fetch, no
+      HTTP lib; native `.env` via `process.loadEnvFile`, no dotenv). `src/
+      types.ts` mirrors the Python contract; `src/aiService.ts` is the sole
+      typed client (draft/fuse/health); `src/index.ts` exposes `/health`,
+      `/api/draft`, `/api/fuse` and forwards to Python. Service URL is env-driven
+      (`PYTHON_SERVICE_URL`).
+- [x] **Done when:** Node round-trips through Python. ✅ Verified: `/api/draft`
+      returns the slate via Python; `/health` reports `aiReachable`; Python down
+      → clean 503 (no crash).
 
 ### M3 — Docker + docker-compose
 - [ ] **Learn:** containers, images, compose; why this suits polyglot apps.
@@ -317,5 +321,11 @@ Cost discipline (job-hunting-friendly, near-zero spend):
 - **Direction pivot (2026-07-10):** redirected to a multi-user product on a
   polyglot Python(FastAPI) + Node/TS architecture; added Docker + AWS learning
   goals. CLAUDE.md rewritten to match (this version).
-- **Next action:** M1 — wrap the existing engine in a stateless FastAPI `/draft`
-  service. Then M2 (Node calls Python) and M3 (Docker).
+- **M1 done:** stateless FastAPI service (`openly/api.py`) — `/health`,
+  `/draft`. **Variation-slate** added: `/draft` returns N variations (default 3,
+  max 5) in one call; new `/fuse` synthesizes selected ones. Default model
+  `claude-sonnet-5` (pricing is an estimate — verify).
+- **M2 done:** `server/` Node/TS + Express backend calls the Python service over
+  HTTP (typed client, env-driven URL, graceful 503 when Python is down).
+- **Next action:** M3 — Dockerize both services + `docker-compose.yml` (add
+  Postgres) so `docker compose up` runs the whole stack.

@@ -10,6 +10,11 @@ __pycache__/
 venv/
 env/
 
+# Node
+node_modules/
+dist/
+npm-debug.log*
+
 # Captured session data / transcripts / job queue (privacy — see CLAUDE.md §4)
 transcripts/
 captures/
