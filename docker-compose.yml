@@ -1,0 +1,58 @@
+# Runs the whole Openly stack with one command: `docker compose up --build`.
+#
+# Three services on one private network. They reach each other by SERVICE NAME
+# (e.g. the backend calls the AI service at http://ai:8000) — this is why the
+# service URL was made an env var back in M2.
+#
+# Secrets: Compose auto-loads the root `.env`, so ${ANTHROPIC_API_KEY} etc. are
+# interpolated from there. Secrets are passed as runtime env, never baked into
+# images.
+
+services:
+  ai:
+    build: .
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+    ports:
+      - "8000:8000"
+    healthcheck:
+      # slim image has no curl; use Python to hit our own /health.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  backend:
+    build: ./server
+    environment:
+      PYTHON_SERVICE_URL: http://ai:8000
+      PORT: "3000"
+      DATABASE_URL: postgres://openly:openly@db:5432/openly
+    ports:
+      - "3000:3000"
+    depends_on:
+      ai:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: openly
+      POSTGRES_PASSWORD: openly
+      POSTGRES_DB: openly
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openly"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:

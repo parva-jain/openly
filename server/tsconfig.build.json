@@ -1,0 +1,7 @@
+// Build config for producing dist/ (used by `npm run build` and the Docker
+// image). Extends the base config but excludes test files, so tests are still
+// type-checked in dev (tsconfig.json) yet never shipped to production.
+{
+  "extends": "./tsconfig.json",
+  "exclude": ["src/**/*.test.ts"]
+}

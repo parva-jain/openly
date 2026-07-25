@@ -212,11 +212,15 @@ Cost discipline (job-hunting-friendly, near-zero spend):
       returns the slate via Python; `/health` reports `aiReachable`; Python down
       → clean 503 (no crash).
 
-### M3 — Docker + docker-compose
-- [ ] **Learn:** containers, images, compose; why this suits polyglot apps.
-- [ ] **Build:** a Dockerfile per service; a `docker-compose.yml` that runs both
-      (+ Postgres) with one command.
-- [ ] **Done when:** `docker compose up` brings the whole stack up locally.
+### M3 — Docker + docker-compose  ✅
+- [x] **Build:** `Dockerfile` (Python, slim, layer-cached deps), `server/
+      Dockerfile` (Node multi-stage build→runtime, tests excluded via
+      `tsconfig.build.json`), `docker-compose.yml` with `ai` + `backend` + `db`
+      (Postgres), health checks, and `depends_on: service_healthy` ordering.
+      Backend reaches Python at `http://ai:8000` (Compose service name). Secrets
+      from root `.env`, never baked into images.
+- [x] **Done when:** `docker compose up --build` brings the whole stack up. ✅
+      Verified: all 3 healthy; round-trip curl→backend→ai works in-network.
 
 ### M4 — Postgres + users + auth + job queue (Node)
 - [ ] **Learn:** multi-tenancy (`user_id` everywhere), auth basics, migrations.
@@ -327,5 +331,10 @@ Cost discipline (job-hunting-friendly, near-zero spend):
   `claude-sonnet-5` (pricing is an estimate — verify).
 - **M2 done:** `server/` Node/TS + Express backend calls the Python service over
   HTTP (typed client, env-driven URL, graceful 503 when Python is down).
-- **Next action:** M3 — Dockerize both services + `docker-compose.yml` (add
-  Postgres) so `docker compose up` runs the whole stack.
+- **Standards pass done:** tests (pytest 24 / node:test 6, external APIs
+  mocked), Ruff + ESLint/Prettier, GitHub Actions CI, README. Repo public at
+  github.com/parva-jain/openly.
+- **M3 done:** Dockerized all three services; `docker compose up --build` runs
+  the full stack (ai + backend + db), verified end-to-end.
+- **Next action:** M4 — Postgres schema (users, jobs, drafts) + auth in the Node
+  backend; move the job queue here (per-user, non-blocking preserved).

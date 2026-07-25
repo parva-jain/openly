@@ -1,0 +1,15 @@
+# Keep the build context small and never bake secrets/junk into the image.
+.venv/
+__pycache__/
+*.pyc
+.git/
+.github/
+data/
+tests/
+scripts/
+server/
+*.md
+.env
+.env.example
+.ruff_cache/
+.pytest_cache/
