@@ -56,6 +56,11 @@ npm run typecheck && npm run lint && npm run format:check && npm test
 Tests mock the paid/external APIs (Anthropic, Tavily), so they run for free and
 deterministically. CI (GitHub Actions) runs the whole gate on every push.
 
+## Docs
+
+- [Architecture & Deployment](./docs/architecture.md) — the polyglot design, the
+  Docker setup in depth, and how it maps to AWS (ECR/ECS/Fargate/RDS).
+
 ## Status
 
 Roadmap and detailed context live in [CLAUDE.md](./CLAUDE.md). Done so far: the
