@@ -104,11 +104,62 @@ The Python service runs `uvicorn --host 0.0.0.0`. Inside a container,
 
 ### 2.7 Networking & service discovery (`docker-compose.yml`)
 
-Compose places all services on a private network and makes each **service name a
-DNS hostname**. That's why the backend reaches Python at `http://ai:8000` — not
-an IP address. Services find each other by name; the outside world can reach a
+> **Networking primer (three building blocks).**
+> - **IP address** — the address of a machine (or container) on a network, e.g.
+>   `172.18.0.3`. *(Analogy: a building's street address.)*
+> - **Port** — a numbered "door" for one service on that machine, e.g. `8000`.
+>   A full address to a specific service is `IP:port`. *(Analogy: an apartment
+>   number.)* Common ports here: `8000` (AI service), `3000` (backend), `5432`
+>   (Postgres).
+> - **DNS** — the "phone book" that turns a **name** into an IP. You use names
+>   because they're stable and readable; IPs can change.
+>
+> So `http://ai:8000` = protocol `http`, hostname `ai` (DNS resolves it to an
+> IP), port `8000`.
+
+**The problem.** When Compose starts containers, Docker assigns each a private
+IP **automatically**, and those IPs can **change** on restart. Hardcoding
+`http://172.18.0.3:8000` in the backend would break the moment that IP changed.
+
+**What Docker does.** For the services in `docker-compose.yml`, Docker (1)
+creates a **private network** (`openly_default`) and puts all containers on it,
+and (2) runs a built-in **DNS server** where **each service name is a hostname**
+pointing at that container's current IP. So the name `ai` always resolves to the
+`ai` container, even across restarts. This is **service discovery**: find a
+service by name, and Docker keeps the name→IP mapping correct.
+
+**One request, start to finish** — when the backend calls `http://ai:8000/draft`:
+
+1. Backend asks Docker's DNS: "what IP is `ai`?" → e.g. `172.18.0.3`.
+2. Backend connects to `172.18.0.3:8000` and sends the request.
+3. The `ai` container (Uvicorn on `0.0.0.0:8000`) receives and responds.
+
+The backend never needs the IP — it uses the name `ai`, which is exactly why the
+code sets `PYTHON_SERVICE_URL=http://ai:8000`.
+
+**Isolation (the security half).** The private network is closed by default:
+containers on it reach each other by name (`backend`→`ai`, `backend`→`db`), but
+the **outside world cannot reach a container unless its port is explicitly
+published** with `ports:`. Publishing a port is like cutting one door through
+the outer wall — cut only the doors you truly need. (In production you'd drop the
+`db` port publish, since only the backend needs Postgres.)
+
+**Two common gotchas.**
+
+- `localhost` **inside a container = that container itself**, not your Mac and
+  not another container. That's why the backend uses `http://ai:8000`, not
+  `http://localhost:8000`, once dockerized. (localhost worked in M2 only because
+  both processes ran directly on the Mac, sharing one localhost.)
+- A published port maps `HOST:CONTAINER`. `3000:3000` forwards *your Mac's* port
+  3000 into the container — that's the one door that lets you `curl
+  localhost:3000` from the host.
+
+In short: Compose places all services on a private network and makes each
+**service name a DNS hostname**, so the backend reaches Python at `http://ai:8000`
+— not an IP. Services find each other by name; the outside world reaches a
 service only if its port is explicitly published. This isolation is a security
-property, not just convenience.
+property, not just convenience. (In AWS terms: the private network → a **VPC**,
+and "publish only what you need" → **security groups**.)
 
 ### 2.8 Volumes & persistence
 
