@@ -25,3 +25,6 @@ data/
 .DS_Store
 .idea/
 .vscode/
+
+# Local brainstorming/design working docs (not part of the repo)
+docs/superpowers/
