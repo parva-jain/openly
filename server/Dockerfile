@@ -20,6 +20,10 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
+# Generated SQL migrations, applied on startup before the server boots.
+COPY drizzle ./drizzle
 
 EXPOSE 3000
-CMD ["node", "dist/index.js"]
+# Apply migrations, then start. `depends_on: db service_healthy` (compose)
+# guarantees Postgres is up first.
+CMD ["sh", "-c", "node dist/db/migrate.js && node dist/index.js"]
