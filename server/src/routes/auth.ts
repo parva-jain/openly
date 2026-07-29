@@ -23,11 +23,17 @@ export function authRouter(db: Database): Router {
       typeof password !== "string" ||
       password.length < 8
     ) {
-      res.status(400).json({ error: "valid email and password (min 8 chars) are required" });
+      res
+        .status(400)
+        .json({ error: "valid email and password (min 8 chars) are required" });
       return;
     }
 
-    const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+    const existing = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
     if (existing.length > 0) {
       res.status(409).json({ error: "email already registered" });
       return;

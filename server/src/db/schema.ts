@@ -5,7 +5,15 @@
 // foreign key, so one user can never see another's data.
 
 import { sql } from "drizzle-orm";
-import { boolean, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 import type { Source, Usage } from "../types.js";
 
 export const users = pgTable("users", {

@@ -54,11 +54,18 @@ describe(
       const res = await request(app)
         .post("/auth/register")
         .send({ email, password: "password123" });
-      assert.equal(res.status, 201, `register ${email} failed: ${JSON.stringify(res.body)}`);
+      assert.equal(
+        res.status,
+        201,
+        `register ${email} failed: ${JSON.stringify(res.body)}`,
+      );
       return res.body.token as string;
     }
 
-    const bearer = (token: string): [string, string] => ["Authorization", `Bearer ${token}`];
+    const bearer = (token: string): [string, string] => [
+      "Authorization",
+      `Bearer ${token}`,
+    ];
 
     test("register then login returns a token", async () => {
       await register("login@x.com");
