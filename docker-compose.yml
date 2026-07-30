@@ -30,6 +30,9 @@ services:
       PYTHON_SERVICE_URL: http://ai:8000
       PORT: "3000"
       DATABASE_URL: postgres://openly:openly@db:5432/openly
+      # Signs JWTs. Sourced from root .env; falls back to a dev value so the
+      # stack still boots locally. MUST be a real secret in production.
+      JWT_SECRET: ${JWT_SECRET:-dev-insecure-secret-change-me}
     ports:
       - "3000:3000"
     depends_on:
