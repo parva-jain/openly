@@ -222,11 +222,17 @@ Cost discipline (job-hunting-friendly, near-zero spend):
 - [x] **Done when:** `docker compose up --build` brings the whole stack up. ✅
       Verified: all 3 healthy; round-trip curl→backend→ai works in-network.
 
-### M4 — Postgres + users + auth + job queue (Node)
-- [ ] **Learn:** multi-tenancy (`user_id` everywhere), auth basics, migrations.
-- [ ] **Build:** Postgres schema (users, jobs, drafts); auth; move the job queue
-      here (non-blocking preserved). Each user's data is isolated.
-- [ ] **Done when:** two users have separate, private queues/drafts behind login.
+### M4 — Postgres + users + auth + job queue (Node)  ✅
+- [x] **Learn:** multi-tenancy (`user_id` everywhere), auth basics, migrations.
+- [x] **Build:** Drizzle schema (users, jobs, drafts) + generated SQL migration
+      applied on boot; own JWT auth (argon2id via `@node-rs/argon2`, `jose`
+      tokens, `requireAuth` middleware); job queue moved into Postgres with a
+      background worker (`FOR UPDATE SKIP LOCKED` poller) — non-blocking
+      preserved. Every job/draft row scoped by `user_id`. Sync `/api/draft`
+      removed in favour of `POST /api/jobs` (enqueue) + `GET /api/jobs[/:id]`.
+- [x] **Done when:** two users have separate, private queues/drafts behind login.
+      ✅ Verified by integration tests against real Postgres (tenancy 404 +
+      disjoint lists; full enqueue→worker-drafts→fetch-slate flow).
 
 ### M5 — CLI as an authenticated client
 - [ ] **Learn:** thick client vs. thin server; where capture belongs.
@@ -336,5 +342,13 @@ Cost discipline (job-hunting-friendly, near-zero spend):
   github.com/parva-jain/openly.
 - **M3 done:** Dockerized all three services; `docker compose up --build` runs
   the full stack (ai + backend + db), verified end-to-end.
-- **Next action:** M4 — Postgres schema (users, jobs, drafts) + auth in the Node
-  backend; move the job queue here (per-user, non-blocking preserved).
+- **M4 done:** Node backend now stateful. Drizzle + Postgres (users/jobs/drafts),
+  own JWT auth (argon2id + `jose` + `requireAuth`), and the job queue moved into
+  Postgres with a `SKIP LOCKED` background worker (non-blocking preserved).
+  Tenancy scoped by `user_id`; sync `/api/draft` replaced by `POST /api/jobs` +
+  `GET /api/jobs[/:id]`. Migrations run on container boot. 13 tests (5 unit + 8
+  integration vs. real Postgres) green incl. the tenancy done-bar; CI gained a
+  Postgres service. Bumped `drizzle-orm`→0.45.2 (SQLi advisory).
+- **Next action:** M5 — CLI as an authenticated client: capture the local
+  session window (sanitized) and POST an authenticated "mark" to `POST /api/jobs`
+  so drafting happens server-side.
