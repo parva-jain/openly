@@ -67,6 +67,24 @@ export const drafts = pgTable("drafts", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// Long-lived, revocable CLI tokens (M5). Opaque token stored only as a sha256
+// hash. Sliding 30-day expiry: expires_at is bumped on each authenticated use,
+// so active users rarely re-login but abandoned tokens die.
+export const cliTokens = pgTable("cli_tokens", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  label: text("label"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+});
+
 export type Job = typeof jobs.$inferSelect;
 export type Draft = typeof drafts.$inferSelect;
 export type User = typeof users.$inferSelect;
+export type CliToken = typeof cliTokens.$inferSelect;

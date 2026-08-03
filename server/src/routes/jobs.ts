@@ -16,7 +16,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 export function jobsRouter(db: Database): Router {
   const router = Router();
-  router.use(requireAuth);
+  router.use(requireAuth(db));
 
   // Enqueue a pending job and return immediately. Drafting happens in the
   // background worker (see worker.ts) — this keeps triggering non-blocking.

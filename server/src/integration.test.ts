@@ -8,11 +8,13 @@
 import { after, before, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import request from "supertest";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { createApp, type AiServices } from "./app.js";
 import { createDb } from "./db/client.js";
 import { processNextJob } from "./worker.js";
+import { mintCliToken } from "./auth/cliToken.js";
+import { jobs as jobsTable, users as usersTable } from "./db/schema.js";
 import type { DraftResponse, FuseResponse } from "./types.js";
 
 const fakeUsage = { model: "fake", input_tokens: 1, output_tokens: 1, cost_usd: 0 };
@@ -44,7 +46,9 @@ describe(
       await migrate(db, { migrationsFolder: "./drizzle" });
     });
     beforeEach(async () => {
-      await db.execute(sql`truncate table drafts, jobs, users restart identity cascade`);
+      await db.execute(
+        sql`truncate table cli_tokens, drafts, jobs, users restart identity cascade`,
+      );
     });
     after(async () => {
       await conn.pool.end();
@@ -176,6 +180,27 @@ describe(
         .get("/api/jobs")
         .set(...bearer(tokenA));
       assert.equal(listA.body.jobs.length, 1);
+    });
+
+    // M5 done-bar: a CLI token creates a job in the user's account.
+    test("cli token: mint -> POST /api/jobs -> job exists for that user", async () => {
+      await register("cli@x.com");
+      const [user] = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.email, "cli@x.com"))
+        .limit(1);
+      const { token } = await mintCliToken(db, user.id, "test");
+
+      const res = await request(app)
+        .post("/api/jobs")
+        .set(...bearer(token))
+        .send({ content_type: "progress_update", intent: "from the CLI" });
+      assert.equal(res.status, 201);
+
+      const rows = await db.select().from(jobsTable).where(eq(jobsTable.userId, user.id));
+      assert.equal(rows.length, 1);
+      assert.equal(rows[0].intent, "from the CLI");
     });
   },
 );

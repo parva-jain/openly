@@ -11,7 +11,9 @@ import * as realAi from "./aiService.js";
 import { AiServiceError } from "./aiService.js";
 import type { Database } from "./db/client.js";
 import { requireAuth } from "./auth/middleware.js";
+import { revokeCliToken } from "./auth/cliToken.js";
 import { authRouter } from "./routes/auth.js";
+import { cliAuthRouter } from "./routes/cliAuth.js";
 import { jobsRouter } from "./routes/jobs.js";
 import type { FuseRequest } from "./types.js";
 
@@ -40,11 +42,12 @@ export function createApp(deps: AppDeps): express.Express {
   });
 
   app.use("/auth", authRouter(deps.db));
+  app.use(cliAuthRouter(deps.db));
   app.use("/api/jobs", jobsRouter(deps.db));
 
   // Fuse stays synchronous (interactive dashboard action on a slate the user is
   // already looking at), now behind auth.
-  app.post("/api/fuse", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/fuse", requireAuth(deps.db), async (req: Request, res: Response) => {
     const body = req.body as FuseRequest;
     if (
       !body?.content_type ||
@@ -58,6 +61,18 @@ export function createApp(deps: AppDeps): express.Express {
     }
     res.json(await ai.fuse(body));
   });
+
+  // Revoke the CLI token presented on this request (used by `openly logout`).
+  // A JWT hash won't match any row, so this is a harmless no-op for web tokens.
+  app.delete(
+    "/api/cli/token",
+    requireAuth(deps.db),
+    async (req: Request, res: Response) => {
+      const token = req.header("authorization")!.slice("Bearer ".length);
+      await revokeCliToken(deps.db, token);
+      res.status(204).end();
+    },
+  );
 
   app.use(errorHandler);
   return app;
