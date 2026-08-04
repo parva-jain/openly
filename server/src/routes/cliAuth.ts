@@ -88,7 +88,11 @@ export function cliAuthRouter(db: Database): Router {
       return;
     }
     const code = base64url(randomBytes(24));
-    authCodes.set(code, { userId: user.id, codeChallenge: String(code_challenge) }, CODE_TTL);
+    authCodes.set(
+      code,
+      { userId: user.id, codeChallenge: String(code_challenge) },
+      CODE_TTL,
+    );
     const redirect = `http://127.0.0.1:${encodeURIComponent(String(port))}/callback?code=${code}&state=${encodeURIComponent(String(state))}`;
     res.redirect(302, redirect);
   });

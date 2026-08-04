@@ -115,7 +115,9 @@ describe(
         password: "password123",
       });
       const code = new URL(login.headers.location).searchParams.get("code")!;
-      await request(app).post("/auth/cli/exchange").send({ code, code_verifier: verifier });
+      await request(app)
+        .post("/auth/cli/exchange")
+        .send({ code, code_verifier: verifier });
       const second = await request(app)
         .post("/auth/cli/exchange")
         .send({ code, code_verifier: verifier });
@@ -139,9 +141,7 @@ describe(
         .send({ email: "dev@x.com", password: "password123", user_code });
       assert.equal(activate.status, 200);
 
-      const got = await request(app)
-        .post("/auth/cli/device/token")
-        .send({ device_code });
+      const got = await request(app).post("/auth/cli/device/token").send({ device_code });
       assert.ok(got.body.token.startsWith("openly_"));
     });
 
