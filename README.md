@@ -21,6 +21,9 @@ and calls it over HTTP.
   gated to content types that need it, with inline citations.
 - **`server/`** — the Node/TS backend. Typed client for the AI service, env-
   driven service URL, graceful degradation when the AI service is down.
+- **`cli/`** — the `openly` CLI (Node/TS, zero runtime deps). Captures a window
+  of your current coding session, sanitizes secrets locally, and enqueues a
+  draft job over the authenticated API. Logs in via the browser.
 
 ## Develop
 
@@ -42,6 +45,27 @@ cp .env.example .env
 npm run dev            # http://localhost:3000
 ```
 
+CLI:
+
+```bash
+cd cli
+npm install
+npm run build
+
+# point at your backend (defaults to http://localhost:3000)
+node dist/index.js login                 # opens the browser (loopback + PKCE)
+node dist/index.js login --device        # SSH/headless: prints a code to enter
+node dist/index.js mark progress_update "shipped the CLI"   # capture + enqueue
+node dist/index.js list                  # your jobs + status
+node dist/index.js show <job-id>         # the variation slate, once drafted
+node dist/index.js logout                # revoke the token + clear local state
+```
+
+The token is stored in `~/.openly/config.json` (mode `0600`). Override the
+backend with `--url <url>` or `OPENLY_URL`. `mark` auto-captures the session
+window for session-anchored types; force it with `--capture` / skip with
+`--no-capture`.
+
 ## Quality gate
 
 ```bash
@@ -49,8 +73,11 @@ npm run dev            # http://localhost:3000
 .venv/bin/ruff check openly tests scripts
 .venv/bin/pytest
 
-# Node (in server/)
+# Node backend (in server/)
 npm run typecheck && npm run lint && npm run format:check && npm test
+
+# CLI (in cli/)
+npm run typecheck && npm run lint && npm test
 ```
 
 Tests mock the paid/external APIs (Anthropic, Tavily), so they run for free and
@@ -65,5 +92,6 @@ deterministically. CI (GitHub Actions) runs the whole gate on every push.
 
 Roadmap and detailed context live in [CLAUDE.md](./CLAUDE.md). Done so far: the
 draft engine (typed content, variation slate, cost metering), tool-use web
-research, the FastAPI service, and the Node backend that calls it. Next:
-Docker + Postgres, auth, dashboard, publishing.
+research, the FastAPI service, the Node backend, Docker + Postgres, auth + the
+job queue, and the authenticated CLI (browser login, session capture, enqueue).
+Next: evals, then the web dashboard.

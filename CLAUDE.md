@@ -234,12 +234,16 @@ Cost discipline (job-hunting-friendly, near-zero spend):
       ✅ Verified by integration tests against real Postgres (tenancy 404 +
       disjoint lists; full enqueue→worker-drafts→fetch-slate flow).
 
-### M5 — CLI as an authenticated client
-- [ ] **Learn:** thick client vs. thin server; where capture belongs.
-- [ ] **Build:** CLI captures the local session window (sanitized) and POSTs an
-      authenticated "mark" to the Node backend. Drafting happens server-side.
-- [ ] **Done when:** `openly mark ...` from the terminal creates a job in the
-      user's account.
+### M5 — CLI as an authenticated client  ✅
+- [x] **Learn:** thick client vs. thin server; where capture belongs.
+- [x] **Build:** standalone `cli/` (Node/TS, zero runtime deps). Captures the
+      local session window (sanitized client-side) and POSTs an authenticated
+      "mark" to `POST /api/jobs`; drafting happens server-side. Browser login
+      (loopback + PKCE) with a device-code fallback for SSH/headless; long-lived
+      revocable CLI token (sliding 30-day), stored `0600` in `~/.openly`.
+- [x] **Done when:** `openly mark ...` from the terminal creates a job in the
+      user's account. ✅ Verified end-to-end against the live Docker stack
+      (login → mark → worker drafts → show slate) and by the done-bar test.
 
 ### Evals — introduce here, keep forever
 - [ ] **Learn:** evaluating LLM output (why it differs from normal tests).
@@ -349,6 +353,17 @@ Cost discipline (job-hunting-friendly, near-zero spend):
   `GET /api/jobs[/:id]`. Migrations run on container boot. 13 tests (5 unit + 8
   integration vs. real Postgres) green incl. the tenancy done-bar; CI gained a
   Postgres service. Bumped `drizzle-orm`→0.45.2 (SQLi advisory).
-- **Next action:** M5 — CLI as an authenticated client: capture the local
-  session window (sanitized) and POST an authenticated "mark" to `POST /api/jobs`
-  so drafting happens server-side.
+- **M5 done:** standalone `cli/` package (Node/TS, zero runtime deps). Browser
+  login — loopback + PKCE with a device-code fallback (SSH/headless) — mints a
+  long-lived, revocable CLI token (sliding 30-day, sha256-hashed, `openly_`
+  prefix) stored `0600` in `~/.openly`. Backend `requireAuth` now accepts either
+  a JWT or a CLI token; new `cli_tokens` table + migration; loopback/device
+  endpoints serve minimal HTML pages (M6's dashboard will absorb them). `mark`
+  captures + sanitizes the session window client-side and enqueues via
+  `POST /api/jobs`. Tests: 24 backend (incl. M5 done-bar + flow tests, files run
+  serially via `--test-concurrency=1` to avoid shared-DB truncate races) + 12
+  CLI (config, http, capture/sanitize, content-types). Verified end-to-end on
+  the live Docker stack; privacy check confirmed no secrets in stored capture.
+- **Next action:** Evals — a small labeled good/bad draft set + a scoring script
+  over `/draft`, re-run after every later change (see roadmap "Evals"); then M6
+  (web dashboard).
